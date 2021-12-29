@@ -1,21 +1,26 @@
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.time.temporal.Temporal;
 import java.util.*;
 
 public class App {
     public static void main(String[] args) {
 
-        List<String> list = listLog();
-        List<Log> logs = new ArrayList<Log>();
-        List<Double> listPhoneNumber = new ArrayList<Double>();
-        float charge = 0;
-        float fee = 0;
+        final float FEE_NORMAL_HOUR = 1;
+        final float FEE_OUTOF_HOUR = 0.5F;
+        final float FEE_REDUCE = 0.2F;
 
-//        tạo ra cái list chứa logs
+
+        List<String> list = listLog();
+
+        List<Log> logs = new ArrayList<Log>();
+
+        List<Double> listPhoneNumber = new ArrayList<Double>();
+
+        float charge = 0;
+
         for (int i = 0; i < list.size(); i++) {
             String[] parts = list.get(i).split(",", 3);
 
@@ -28,82 +33,114 @@ public class App {
             logs.add(new Log(phoneNumber, start, end));
         }
 
-        for (int i = 0; i < logs.size(); i++) {
-            long minute = minuteCalculator(logs.get(i).getStartTime(), logs.get(i).getEndTime());
-            int startDate = logs.get(i).getStartTime().getDate();
-            int startHours = logs.get(i).getStartTime().getHours();
+        Collections.sort(logs);
+        System.out.println("==============");
+        for(Log log: logs) {
+            System.out.println(log.getPhoneNumber());
+        }
+        System.out.println("==============");
 
-            int endDate = logs.get(i).getEndTime().getDate();
-            int endHours = logs.get(i).getEndTime().getHours();
+        for (int i = 0; i < logs.size(); i++) {
+
+            LocalDateTime startTime = Instant
+                    .ofEpochMilli(logs.get(i).getStartTime().getTime())
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime();
+
+            LocalDateTime endTime = Instant
+                    .ofEpochMilli(logs.get(i).getEndTime().getTime())
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDateTime();
+
+//            int startHours = logs.get(i).getStartTime().getHours();
+            int startHours = startTime.getHour();
+
+//            int endHours = logs.get(i).getEndTime().getHours();
+            int endHours = endTime.getHour();
+
+
 
             if (!phoneOfMostBeCalled(logs).equals(logs.get(i).getPhoneNumber())) {
-                if (minute < 5) {
-                    if (startDate == endDate) {
+                long totalMinuteCalled = minuteCalculator(logs.get(i).getStartTime(), logs.get(i).getEndTime());
+                int minuteCalled = 0;
+                int count_tmp = 0;
+                while (!startTime.isAfter(endTime)) {
+                    if (minuteCalled < 5) {
                         if (startHours >= 8 && startHours <= 16 && endHours >= 8 && endHours <= 16) {
-                            fee = 1;
-                            charge = charge + (fee * minute);
-                        } else {
-                            fee = 0.5F;
-                            charge = charge + (fee * minute);
-                        }
-                    }
+                            charge = charge + FEE_NORMAL_HOUR;
 
-                } else {
-                    if (startHours >= 8 && startHours <= 16) {
-                        fee = 0.8F;
-                        charge = 4F + (fee * (minute - 4));
+                            minuteCalled++;
+                            startTime = startTime.plusMinutes(1).withSecond(0);
+                            if(minuteCalled == 60) {
+                                startTime.plusHours(1).withMinute(0).withSecond(0);
+                                startHours++;
+                            }
+                            count_tmp++;
+                            System.out.println("trong gio hanh chinh < 5 phut: gio : " + startTime.getHour() + " phut :" + count_tmp + " ... charge: " + charge);
+                        } else {
+                            charge = charge + FEE_OUTOF_HOUR;
+
+                            minuteCalled++;
+                            startTime = startTime.plusMinutes(1).withSecond(0);
+                            if(minuteCalled == 60) {
+                                startTime.plusHours(1).withMinute(0).withSecond(0);
+                                startHours++;
+                            }
+                            count_tmp++;
+                            System.out.println("ngoai gio hanh chinh < 5 phut: gio : " + startTime.getHour() + " phut :" + count_tmp + " ... charge: " + charge);
+                        }
                     } else {
-                        fee = 0.3F;
-                        charge = 2F + (fee * (minute - 4));
+                        if (startHours >= 8 && startHours <= 16 && endHours >= 8 && endHours <= 16) {
+                            charge += (FEE_NORMAL_HOUR - FEE_REDUCE) ;
+
+                            minuteCalled++;
+                            startTime = startTime.plusMinutes(1).withSecond(0);
+                            if(minuteCalled == 60) {
+                                startTime.plusHours(1).withMinute(0).withSecond(0);
+                                startHours++;
+                            }
+                            count_tmp++;
+                            System.out.println("trong gio hanh chinh > 5 phut: gio : " + startTime.getHour() + " phut :" + count_tmp + " ... charge: " + charge);
+                        } else {
+                            charge += (FEE_OUTOF_HOUR - FEE_REDUCE);
+                            count_tmp++;
+//                            System.out.println("ngoai gio hanh chinh > 5 phut: phut thu :" + count_tmp + " ... charge: " + charge);
+                            minuteCalled++;
+                            startTime = startTime.plusMinutes(1).withSecond(0);
+                            if(minuteCalled == 60) {
+                                startTime.plusHours(1).withMinute(0).withSecond(0);
+                                startHours++;
+                            }
+                            System.out.println("ngoai gio hanh chinh > 5 phut: gio : " + startTime.getHour() + " phut :" + count_tmp + " ... charge: " + charge);
+                        }
                     }
                 }
             } else {
-                charge = 0;
+                System.out.println("So bi goi nhieu nhat");
+                charge += 0;
             }
             System.out.println("cost: " + charge);
         }
-
-        // Show Most be called
-//        String phone = phoneOfMostBeCalled(logs);
-
-//        chỉ tính phút lẻ ban đầu, hay là tính làm tròn phút nếu có giấy lẻ
-//        sau phút thứ 5 là mỗi giây đều đc giảm 0.2 hay chỉ có giây thứ 5 thôi
-//        có 2 số cuộc gọi cao nhất thì lấy số nào
-
-//       đổi hết ra giấy, trừ nhau => *100 * 60 = số phút đem làm tròn lên
-//       lấy giờ bất đầu với giờ kết thúc
-//       nếu giờ hành
-
-        // tạo List lưu giá trị củ
-        // Lấy ra thằng đc gọi nhiều nhất => free
-        // ngược lại
-        // số phút
-        // tính số phút trước 6:01
-
-        // case trước 5 phút với sau 5 phút
-        // trong trước 5 phút nằm trong 8 - 16 thì giá là 1 kc
-        // trong trước 5 phút nằm trong khoảng còn lại thì giá là 0.5 kc
-        // trong tren 5 phút nằm trong khoảng nằm trong 8 - 16 thì giá là 0.8 kc
-        // trong tren 5 phút nằm trong khoảng nằm trong còn lại thì giá là 0.3 kc
+        System.out.println("total cost: " + charge);
     }
 
     public static List<String> listLog() {
         List<String> list = new ArrayList<String>();
         list.add("420776562354,18-01-2020 08:20:00,18-01-2020 08:24:00");
-        list.add("420776562354,18-01-2020 08:59:20,18-01-2020 09:10:00");
+        list.add("420776562354,18-01-2020 09:20:00,18-01-2020 09:24:00");
+        list.add("420776562354,18-01-2020 09:20:00,18-01-2020 09:24:00");
+//        list.add("420776562354,18-01-2020 08:59:20,18-01-2020 09:10:00");
 
-        list.add("420776562355,18-01-2020 08:59:20,18-01-2020 09:10:00");
-        list.add("420776562355,18-01-2020 08:00:20,18-01-2020 18:00:00");
-        // 8h - 16h: 4 + 0.8 * ((10 * 60) - 4) = 388
-        // 16h - 18h: 2 + 0.3 * (2 * 60) =
-//        list.add("420776562355,18-01-2020 08:59:20,18-01-2020 09:10:00");
-//        list.add("420776562351,18-01-2020 08:59:20,18-01-2020 09:10:00");
+        list.add("420776562355,18-01-2020 07:50:20,18-01-2020 09:00:20");
+        list.add("420776562355,18-01-2020 07:50:20,18-01-2020 09:00:20");
+        list.add("420776562355,18-01-2020 07:50:20,18-01-2020 09:00:20");
         return list;
     }
 
-    //    420776562353,18-01-2020 08:59:20,18-01-2020 09:10:00
     public static Date StringToDate(String date_s) {
+
         SimpleDateFormat simpledateformat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+
         Date tempDate = null;
 
         try {
@@ -115,7 +152,9 @@ public class App {
     }
 
     public static long minuteCalculator(Date start, Date end) {
+
         long second = end.getTime() - start.getTime();
+
         long minute = (second / 1000) / 60;
 
         if (((second / 1000) % 60) != 0) {
@@ -132,8 +171,11 @@ public class App {
      * @return
      */
     public static String phoneOfMostBeCalled(List<Log> logs) {
+
         int extraIndex = 0; // hold index of bigest value WHEN there are two or more the same times be called
+
         int index = 0; // hold index of bigest value WHEN there are only
+
         int maxCount = 0; // time counting of the bigest value
 
         for (int i = 0; i < logs.size() - 1; i++) {

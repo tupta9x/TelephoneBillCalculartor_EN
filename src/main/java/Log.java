@@ -1,7 +1,7 @@
 import java.math.BigDecimal;
 import java.util.Date;
 
-public class Log {
+public class Log implements Comparable<Log>{
     private String phoneNumber;
     private Date startTime;
     private Date endTime;
@@ -37,5 +37,11 @@ public class Log {
 
     public void setEndTime(Date endTime) {
         this.endTime = endTime;
+    }
+
+    @Override
+    public int compareTo(Log o) {
+//        return this.getPhoneNumber().compareTo(o.getPhoneNumber());
+        return o.getPhoneNumber().compareTo(this.getPhoneNumber());
     }
 }
