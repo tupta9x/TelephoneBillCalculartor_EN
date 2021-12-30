@@ -41,7 +41,7 @@ public class Log implements Comparable<Log>{
 
     @Override
     public int compareTo(Log o) {
-//        return this.getPhoneNumber().compareTo(o.getPhoneNumber());
-        return o.getPhoneNumber().compareTo(this.getPhoneNumber());
+        return this.getPhoneNumber().compareTo(o.getPhoneNumber());
+//        return o.getPhoneNumber().compareTo(this.getPhoneNumber());
     }
 }
